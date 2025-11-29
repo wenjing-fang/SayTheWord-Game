@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Speech Game</title>
+  <title>Jeu de Reconnaissance Vocale</title>
   <style>
     * {
       box-sizing: border-box;
@@ -32,14 +32,60 @@
       box-shadow: 0 20px 60px rgba(90, 74, 58, 0.15);
       text-align: center;
       border: 1px solid rgba(212, 196, 176, 0.3);
+      position: relative;
     }
     
     h1 {
       font-size: clamp(24px, 5vw, 32px);
       margin-bottom: 30px;
+      margin-top: 50px; /* Space for language selector container */
+      padding-right: 0;
       color: #8b6f47;
       font-weight: 700;
       letter-spacing: -0.5px;
+    }
+    
+    .language-selector {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      background: rgba(250, 248, 245, 0.95);
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(212, 196, 176, 0.3);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+    
+    .lang-btn {
+      padding: 1px 1px;
+      font-size: 9px;
+      border: 1px solid #d4c4b0;
+      background: #faf8f5;
+      color: #8b6f47;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      white-space: nowrap;
+      line-height: 1.1;
+    }
+    
+    .lang-btn.active {
+      background: #c9a882;
+      color: white;
+      border-color: #b8956a;
+    }
+    
+    .lang-btn:hover {
+      background: #e8ddd4;
+    }
+    
+    .lang-btn.active:hover {
+      background: #b8956a;
     }
     
     .button-group {
@@ -85,20 +131,24 @@
     }
     
     #word {
-      font-size: clamp(36px, 8vw, 56px);
+      font-size: clamp(24px, 5vw, 36px);
       margin: 30px 0;
       font-weight: 700;
       color: #5a4a3a;
-      min-height: 80px;
+      min-height: 100px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, #f0e8dd 0%, #e8ddd4 100%);
       border-radius: 16px;
-      padding: 20px;
-      letter-spacing: 2px;
+      padding: 24px;
+      letter-spacing: 1px;
       border: 2px solid #d4c4b0;
       box-shadow: inset 0 2px 4px rgba(90, 74, 58, 0.1);
+      line-height: 1.4;
+      word-wrap: break-word;
+      text-align: center;
     }
     
     #message {
@@ -151,8 +201,22 @@
         border-radius: 20px;
       }
       
+      .language-selector {
+        top: 15px;
+        right: 15px;
+        gap: 2px;
+        padding: 3px;
+      }
+      
+      .lang-btn {
+        padding: 2px 5px;
+        font-size: 8px;
+      }
+      
       h1 {
         margin-bottom: 24px;
+        padding-right: 0;
+        margin-top: 45px; /* Space for language selector container on mobile */
       }
       
       .button-group {
@@ -167,7 +231,8 @@
       #word {
         margin: 24px 0;
         padding: 16px;
-        min-height: 70px;
+        min-height: 80px;
+        font-size: clamp(20px, 4vw, 28px);
       }
     }
     
@@ -181,18 +246,23 @@
 <body>
 
 <div class="container">
-  <h1>🎤 Speech Recognition Game</h1>
+  <h1 id="title">Jeu de Reconnaissance Vocale</h1>
+  
+  <div class="language-selector">
+    <button class="lang-btn active" data-lang="fr">Français</button>
+    <button class="lang-btn" data-lang="zh">中文</button>
+  </div>
   
   <div class="button-group">
-    <button id="startBtn">Start</button>
-    <button id="passBtn" style="display: none;">Pass</button>
+    <button id="startBtn">Commencer</button>
+    <button id="passBtn" style="display: none;">Passer</button>
   </div>
 
   <div id="word">—</div>
   <div id="message"></div>
 
   <div id="volumeContainer" style="display: none;">
-    <div id="volumeLabel">🎙️ Microphone Volume</div>
+    <div id="volumeLabel">Volume du Microphone</div>
     <div id="volumeBar">
       <div id="volumeLevel"></div>
     </div>
@@ -234,7 +304,8 @@
       })
       .catch(error => {
         console.error("Error accessing microphone:", error);
-        messageDiv.textContent = "Could not access microphone. Please allow microphone access.";
+        const lang = languageData[currentLang];
+        messageDiv.textContent = lang.micError;
       });
   }
   
@@ -302,59 +373,319 @@
   }
 
   // ============================
-  // WORDS LIST
+  // LANGUAGE DATA
   // ============================
-  // Words from word.csv embedded directly
-  const words = [
-    "jeremy", "woke", "early", "sunrise", "coffee", "backpack",
-"journey", "village", "forest", "path", "curiosity", "birdsong",
-"river", "bridge", "stone", "discover", "map", "hidden", "cabin",
-"mystery", "journal", "clues", "lantern", "nightfall", "courage",
-"friendship", "promise", "return", "home", "grateful", "rest"
-  ];
+  const languageData = {
+    fr: {
+      code: "fr-FR",
+      title: "Jeu de Reconnaissance Vocale",
+      startBtn: "Commencer",
+      passBtn: "Passer",
+      volumeLabel: "Volume du Microphone",
+      sayPhrase: "Dites la phrase...",
+      great: "Excellent ! ",
+      passed: "Passé ",
+      finished: "Terminé !",
+      greatJob: "Excellent travail !",
+      noWords: "Aucun mot chargé.",
+      noWordsAvailable: "Aucun mot disponible.",
+      tryAgain: "Réessayez.",
+      error: "Erreur. Réessayez.",
+      micError: "Impossible d'accéder au microphone. Veuillez autoriser l'accès au microphone.",
+      youSaid: "Vous avez dit :",
+      words: [] // Will be loaded from CSV
+    },
+    zh: {
+      code: "zh-CN",
+      title: "🎤 语音识别游戏",
+      startBtn: "开始",
+      passBtn: "跳过",
+      volumeLabel: "🎙️ 麦克风音量",
+      sayPhrase: "请说这句话...",
+      great: "太好了！ ✨",
+      passed: "已跳过 ⏭️",
+      finished: "🎉 完成！",
+      greatJob: "做得很好！",
+      noWords: "没有加载词语。",
+      noWordsAvailable: "没有可用词语。",
+      tryAgain: "再试一次。",
+      error: "错误。再试一次。",
+      micError: "无法访问麦克风。请允许麦克风访问。",
+      youSaid: "您说的是：",
+      words: [
+        "你好",
+        "谢谢",
+        "我要牛肉面",
+        "小新开灯",
+        "小新关灯",
+        "不要",
+        "晚上好",
+        "晚安",
+        "不客气",
+        "没关系",
+        "是的",
+        "不是",
+        "可能",
+        "欢迎",
+        "明天见",
+        "你叫什么名字",
+        "我叫",
+        "很高兴认识你",
+        "你好吗",
+        "我很好",
+        "在哪里",
+        "多少钱",
+        "我不明白",
+        "你会说英语吗",
+        "我很抱歉",
+        "请慢一点",
+        "请再说一遍",
+        "我饿了",
+        "我渴了",
+        "谢谢你的帮助"
+      ],
+      pinyin: {
+        "你好": "nǐ hǎo",
+        "谢谢": "xiè xie",
+        "我要牛肉面": "wǒ yào niú ròu miàn",
+        "小新开灯": "xiǎo xīn kāi dēng",
+        "小新关灯": "xiǎo xīn guān dēng",
+        "不要": "bú yào",
+        "晚上好": "wǎn shang hǎo",
+        "晚安": "wǎn ān",
+        "不客气": "bú kè qì",
+        "没关系": "méi guān xi",
+        "是的": "shì de",
+        "不是": "bú shì",
+        "可能": "kě néng",
+        "欢迎": "huān yíng",
+        "明天见": "míng tiān jiàn",
+        "你叫什么名字": "nǐ jiào shén me míng zi",
+        "我叫": "wǒ jiào",
+        "很高兴认识你": "hěn gāo xìng rèn shi nǐ",
+        "你好吗": "nǐ hǎo ma",
+        "我很好": "wǒ hěn hǎo",
+        "在哪里": "zài nǎ lǐ",
+        "多少钱": "duō shao qián",
+        "我不明白": "wǒ bù míng bai",
+        "你会说英语吗": "nǐ huì shuō yīng yǔ ma",
+        "我很抱歉": "wǒ hěn bào qiàn",
+        "请慢一点": "qǐng màn yì diǎn",
+        "请再说一遍": "qǐng zài shuō yí biàn",
+        "我饿了": "wǒ è le",
+        "我渴了": "wǒ kě le",
+        "谢谢你的帮助": "xiè xie nǐ de bāng zhù"
+      }
+    }
+  };
+  
+  let currentLang = "fr";
+  let words = languageData[currentLang].words;
   let index = 0;
+  
+  // ============================
+  // LOAD WORDS FROM CSV
+  // ============================
+  async function loadWordsFromCSV() {
+    try {
+      const response = await fetch("word.csv");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const text = await response.text();
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+      languageData.fr.words = lines;
+      
+      // Update words if French is currently selected
+      if (currentLang === "fr") {
+        words = languageData.fr.words;
+      }
+      
+      console.log(`Loaded ${lines.length} French words from CSV`);
+    } catch (error) {
+      console.error("Error loading words from CSV:", error);
+      if (messageDiv) {
+        messageDiv.textContent = "Erreur lors du chargement des mots. Vérifiez que word.csv est présent.";
+      }
+    }
+  }
+  
+  // Load words when page loads
+  loadWordsFromCSV();
 
   // ============================
   // SPEECH RECOGNITION SETUP
   // ============================
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = true; // Enable interim results for faster feedback
-  recognition.continuous = true;
+  let recognition = null;
+  
+  function setupRecognition() {
+    // Stop and remove old recognition if it exists
+    if (recognition) {
+      if (recognition.state === 'listening' || recognition.state === 'starting') {
+        recognition.stop();
+      }
+      // Remove old event handlers by creating new instance
+    }
+    
+    // Create new recognition instance with current language
+    recognition = new SpeechRecognition();
+    recognition.lang = languageData[currentLang].code;
+    recognition.interimResults = true; // Enable interim results for faster feedback
+    recognition.continuous = true;
+    
+    // Set up event handlers
+    recognition.onresult = (event) => {
+      const resultIndex = event.results.length - 1;
+      const transcript = normalizeText(event.results[resultIndex][0].transcript);
+      const isFinal = event.results[resultIndex].isFinal;
+      const target = normalizeText(words[index]);
+
+      // Ignore results that are for a different word (old results from previous word)
+      if (index !== currentWordIndex) {
+        return;
+      }
+
+      // Skip if we've already processed this result
+      if (resultIndex <= lastProcessedIndex) {
+        return;
+      }
+
+      // Check for correct match in interim or final results
+      const lang = languageData[currentLang];
+      if (transcript === target) {
+        lastProcessedIndex = resultIndex;
+        messageDiv.textContent = lang.great;
+        messageDiv.style.color = "#7a9d5a";
+        playSuccessSound();
+        index++;
+        currentWordIndex = index; // Update to match new word index
+        setTimeout(() => {
+          showNextWord();
+          lastProcessedIndex = -1; // Reset for next word
+          // Ensure recognition is still running after showing next word
+          if (index < words.length && recognition.state !== 'listening') {
+            recognition.start();
+          }
+        }, 800);
+      } else if (isFinal) {
+        // Only show error message for final (confirmed) incorrect results
+        lastProcessedIndex = resultIndex;
+        const originalTranscript = event.results[resultIndex][0].transcript.trim();
+        messageDiv.textContent = `${lang.youSaid} "${originalTranscript}". ${lang.tryAgain}`;
+        messageDiv.style.color = "#c97d60";
+      }
+    };
+
+    recognition.onend = () => {
+      // Restart recognition if game is still active
+      if (index < words.length) {
+        recognition.start();
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === 'no-speech') {
+        // No speech detected, just restart
+        if (index < words.length) {
+          recognition.start();
+        }
+      } else {
+        const lang = languageData[currentLang];
+        messageDiv.textContent = lang.error;
+        console.error("Recognition error:", event.error);
+      }
+    };
+  }
+  
+  // Initialize recognition
+  setupRecognition();
+  
+  // ============================
+  // LANGUAGE SELECTION
+  // ============================
+  function updateLanguage(lang) {
+    currentLang = lang;
+    words = languageData[currentLang].words;
+    index = 0;
+    currentWordIndex = 0;
+    lastProcessedIndex = -1;
+    
+    // Reload CSV words if switching to French
+    if (lang === "fr" && languageData.fr.words.length === 0) {
+      loadWordsFromCSV().then(() => {
+        words = languageData.fr.words;
+      });
+    }
+    
+    // Create new recognition instance with new language
+    setupRecognition();
+    
+    // Update UI text
+    document.getElementById("title").textContent = languageData[currentLang].title;
+    document.getElementById("startBtn").textContent = languageData[currentLang].startBtn;
+    document.getElementById("passBtn").textContent = languageData[currentLang].passBtn;
+    document.getElementById("volumeLabel").textContent = languageData[currentLang].volumeLabel;
+    
+    // Update active button
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.lang === lang);
+    });
+    
+    // Reset game state
+    wordDiv.textContent = "—";
+    messageDiv.textContent = "";
+    document.getElementById("passBtn").style.display = "none";
+    stopVolumeMonitoring();
+  }
+  
+  document.querySelectorAll(".lang-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      updateLanguage(btn.dataset.lang);
+    });
+  });
 
   // ============================
   // GAME LOGIC
   // ============================
   function showNextWord() {
+    const lang = languageData[currentLang];
     if (words.length === 0) {
       wordDiv.textContent = "—";
-      messageDiv.textContent = "No words loaded.";
+      messageDiv.textContent = lang.noWords;
       document.getElementById("passBtn").style.display = "none";
       return;
     }
     if (index >= words.length) {
-      wordDiv.textContent = "🎉 Finished!";
-      messageDiv.textContent = "Great job!";
+      wordDiv.textContent = lang.finished;
+      messageDiv.textContent = lang.greatJob;
       messageDiv.style.color = "#7a9d5a";
       recognition.stop();
       stopVolumeMonitoring();
       document.getElementById("passBtn").style.display = "none";
       return;
     }
-    wordDiv.textContent = words[index];
-    messageDiv.textContent = "Say the word...";
+    // Display word with pinyin for Chinese
+    if (currentLang === 'zh' && languageData.zh.pinyin && languageData.zh.pinyin[words[index]]) {
+      const pinyin = languageData.zh.pinyin[words[index]];
+      wordDiv.innerHTML = `<div style="font-size: 1em; margin-bottom: 8px;">${words[index]}</div><div style="font-size: 0.5em; color: #8b6f47; font-weight: 400; letter-spacing: 0.5px;">${pinyin}</div>`;
+    } else {
+      wordDiv.textContent = words[index];
+    }
+    messageDiv.textContent = lang.sayPhrase;
     messageDiv.style.color = "#8b6f47";
     document.getElementById("passBtn").style.display = "inline-block";
   }
   
   function passCurrentWord() {
+    const lang = languageData[currentLang];
     if (index >= words.length) {
       return;
     }
-    messageDiv.textContent = "Passed ⏭️";
+    messageDiv.textContent = lang.passed;
     messageDiv.style.color = "#b8956a";
     index++;
+    currentWordIndex = index; // Update to match new word index
     lastProcessedIndex = -1; // Reset for next word
     setTimeout(() => {
       showNextWord();
@@ -366,11 +697,13 @@
   }
 
   document.getElementById("startBtn").onclick = () => {
+    const lang = languageData[currentLang];
     if (words.length === 0) {
-      messageDiv.textContent = "No words available.";
+      messageDiv.textContent = lang.noWordsAvailable;
       return;
     }
     index = 0;
+    currentWordIndex = 0; // Reset word index tracking
     showNextWord();
     startVolumeMonitoring();
     recognition.start();
@@ -379,59 +712,25 @@
   document.getElementById("passBtn").onclick = passCurrentWord;
 
   let lastProcessedIndex = -1;
+  let currentWordIndex = 0; // Track which word we're currently checking
   
-  recognition.onresult = (event) => {
-    const resultIndex = event.results.length - 1;
-    const transcript = event.results[resultIndex][0].transcript.toLowerCase().trim();
-    const isFinal = event.results[resultIndex].isFinal;
-    const target = words[index].toLowerCase();
-
-    // Skip if we've already processed this result
-    if (resultIndex <= lastProcessedIndex) {
-      return;
-    }
-
-    // Check for correct match in interim or final results
-    if (transcript === target) {
-      lastProcessedIndex = resultIndex;
-      messageDiv.textContent = "Great! ✨";
-      messageDiv.style.color = "#7a9d5a";
-      playSuccessSound();
-      index++;
-      setTimeout(() => {
-        showNextWord();
-        lastProcessedIndex = -1; // Reset for next word
-        // Ensure recognition is still running after showing next word
-        if (index < words.length && recognition.state !== 'listening') {
-          recognition.start();
-        }
-      }, 800);
-    } else if (isFinal) {
-      // Only show error message for final (confirmed) incorrect results
-      lastProcessedIndex = resultIndex;
-      messageDiv.textContent = `You said: "${transcript}". Try again.`;
-      messageDiv.style.color = "#c97d60";
-    }
-  };
-
-  recognition.onend = () => {
-    // Restart recognition if game is still active
-    if (index < words.length) {
-      recognition.start();
-    }
-  };
-
-  recognition.onerror = (event) => {
-    if (event.error === 'no-speech') {
-      // No speech detected, just restart
-      if (index < words.length) {
-        recognition.start();
-      }
+  // Normalize text for comparison (remove extra spaces, punctuation)
+  function normalizeText(text) {
+    let normalized = text.toLowerCase().trim();
+    
+    // Remove punctuation (works for both French and Chinese)
+    normalized = normalized.replace(/[.,!?;:，。！？；：]/g, '');
+    
+    // For Chinese, remove all spaces. For French, normalize spaces.
+    if (currentLang === 'zh') {
+      normalized = normalized.replace(/\s+/g, '');
     } else {
-      messageDiv.textContent = "Error. Try again.";
-      console.error("Recognition error:", event.error);
+      normalized = normalized.replace(/\s+/g, ' ').trim();
     }
-  };
+    
+    return normalized;
+  }
+
 </script>
 
 </body>
