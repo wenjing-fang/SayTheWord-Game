@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Speech Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d5c4 50%, #d4c4b0 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #5a4a3a;
+    }
+    
+    .container {
+      background: #faf8f5;
+      border-radius: 24px;
+      padding: 40px 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(90, 74, 58, 0.15);
+      text-align: center;
+      border: 1px solid rgba(212, 196, 176, 0.3);
+    }
+    
+    h1 {
+      font-size: clamp(24px, 5vw, 32px);
+      margin-bottom: 30px;
+      color: #8b6f47;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      font-size: clamp(16px, 4vw, 18px);
+      padding: 14px 28px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      min-height: 48px; /* Touch-friendly */
+      min-width: 100px;
+    }
+    
+    #startBtn {
+      background: linear-gradient(135deg, #c9a882 0%, #b8956a 100%);
+      color: white;
+    }
+    
+    #startBtn:hover, #startBtn:active {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(201, 168, 130, 0.4);
+      background: linear-gradient(135deg, #b8956a 0%, #a6825a 100%);
+    }
+    
+    #passBtn {
+      background: #e8ddd4;
+      color: #8b6f47;
+    }
+    
+    #passBtn:hover, #passBtn:active {
+      background: #ddd4c9;
+      transform: translateY(-2px);
+    }
+    
+    #word {
+      font-size: clamp(36px, 8vw, 56px);
+      margin: 30px 0;
+      font-weight: 700;
+      color: #5a4a3a;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f0e8dd 0%, #e8ddd4 100%);
+      border-radius: 16px;
+      padding: 20px;
+      letter-spacing: 2px;
+      border: 2px solid #d4c4b0;
+      box-shadow: inset 0 2px 4px rgba(90, 74, 58, 0.1);
+    }
+    
+    #message {
+      font-size: clamp(18px, 4vw, 22px);
+      margin-top: 20px;
+      min-height: 30px;
+      color: #8b6f47;
+      font-weight: 500;
+    }
+    
+    #message:empty {
+      min-height: 0;
+    }
+    
+    #volumeContainer {
+      margin: 30px 0 0 0;
+      width: 100%;
+    }
+    
+    #volumeLabel {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #8b6f47;
+      font-weight: 500;
+    }
+    
+    #volumeBar {
+      width: 100%;
+      height: 36px;
+      background-color: #e8ddd4;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(90, 74, 58, 0.1);
+      border: 1px solid #d4c4b0;
+    }
+    
+    #volumeLevel {
+      height: 100%;
+      background: linear-gradient(to right, #4caf50, #8bc34a, #ffeb3b, #ff9800, #f44336);
+      width: 0%;
+      transition: width 0.1s ease-out;
+      border-radius: 18px;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 480px) {
+      .container {
+        padding: 30px 20px;
+        border-radius: 20px;
+      }
+      
+      h1 {
+        margin-bottom: 24px;
+      }
+      
+      .button-group {
+        margin-bottom: 24px;
+      }
+      
+      button {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      #word {
+        margin: 24px 0;
+        padding: 16px;
+        min-height: 70px;
+      }
+    }
+    
+    /* Success message styling */
+    #message:contains("Great!") {
+      color: #4caf50;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎤 Speech Recognition Game</h1>
+  
+  <div class="button-group">
+    <button id="startBtn">Start</button>
+    <button id="passBtn" style="display: none;">Pass</button>
+  </div>
+
+  <div id="word">—</div>
+  <div id="message"></div>
+
+  <div id="volumeContainer" style="display: none;">
+    <div id="volumeLabel">🎙️ Microphone Volume</div>
+    <div id="volumeBar">
+      <div id="volumeLevel"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================
+  // GET DOM ELEMENTS
+  // ============================
+  const wordDiv = document.getElementById("word");
+  const messageDiv = document.getElementById("message");
+  const volumeContainer = document.getElementById("volumeContainer");
+  const volumeLevel = document.getElementById("volumeLevel");
+  
+  // ============================
+  // AUDIO ANALYSIS SETUP
+  // ============================
+  let audioContext = null;
+  let analyser = null;
+  let microphone = null;
+  let dataArray = null;
+  let animationFrameId = null;
+  
+  function startVolumeMonitoring() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+        
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        
+        volumeContainer.style.display = "block";
+        updateVolumeBar();
+      })
+      .catch(error => {
+        console.error("Error accessing microphone:", error);
+        messageDiv.textContent = "Could not access microphone. Please allow microphone access.";
+      });
+  }
+  
+  function updateVolumeBar() {
+    if (!analyser || !dataArray) return;
+    
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Calculate average volume
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      sum += dataArray[i];
+    }
+    const average = sum / dataArray.length;
+    
+    // Convert to percentage (0-100)
+    const volumePercent = Math.min(100, (average / 255) * 100);
+    volumeLevel.style.width = volumePercent + "%";
+    
+    animationFrameId = requestAnimationFrame(updateVolumeBar);
+  }
+  
+  function stopVolumeMonitoring() {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    if (microphone) {
+      microphone.disconnect();
+      microphone = null;
+    }
+    if (audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+    volumeContainer.style.display = "none";
+    volumeLevel.style.width = "0%";
+  }
+  
+  // ============================
+  // SUCCESS SOUND
+  // ============================
+  function playSuccessSound() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      // Create a pleasant two-tone chime
+      oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+      oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (error) {
+      console.error("Error playing success sound:", error);
+    }
+  }
+
+  // ============================
+  // WORDS LIST
+  // ============================
+  // Words from word.csv embedded directly
+  const words = [
+    "jeremy", "woke", "early", "sunrise", "coffee", "backpack",
+"journey", "village", "forest", "path", "curiosity", "birdsong",
+"river", "bridge", "stone", "discover", "map", "hidden", "cabin",
+"mystery", "journal", "clues", "lantern", "nightfall", "courage",
+"friendship", "promise", "return", "home", "grateful", "rest"
+  ];
+  let index = 0;
+
+  // ============================
+  // SPEECH RECOGNITION SETUP
+  // ============================
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = true; // Enable interim results for faster feedback
+  recognition.continuous = true;
+
+  // ============================
+  // GAME LOGIC
+  // ============================
+  function showNextWord() {
+    if (words.length === 0) {
+      wordDiv.textContent = "—";
+      messageDiv.textContent = "No words loaded.";
+      document.getElementById("passBtn").style.display = "none";
+      return;
+    }
+    if (index >= words.length) {
+      wordDiv.textContent = "🎉 Finished!";
+      messageDiv.textContent = "Great job!";
+      messageDiv.style.color = "#7a9d5a";
+      recognition.stop();
+      stopVolumeMonitoring();
+      document.getElementById("passBtn").style.display = "none";
+      return;
+    }
+    wordDiv.textContent = words[index];
+    messageDiv.textContent = "Say the word...";
+    messageDiv.style.color = "#8b6f47";
+    document.getElementById("passBtn").style.display = "inline-block";
+  }
+  
+  function passCurrentWord() {
+    if (index >= words.length) {
+      return;
+    }
+    messageDiv.textContent = "Passed ⏭️";
+    messageDiv.style.color = "#b8956a";
+    index++;
+    lastProcessedIndex = -1; // Reset for next word
+    setTimeout(() => {
+      showNextWord();
+      // Ensure recognition is still running after showing next word
+      if (index < words.length && recognition.state !== 'listening') {
+        recognition.start();
+      }
+    }, 500);
+  }
+
+  document.getElementById("startBtn").onclick = () => {
+    if (words.length === 0) {
+      messageDiv.textContent = "No words available.";
+      return;
+    }
+    index = 0;
+    showNextWord();
+    startVolumeMonitoring();
+    recognition.start();
+  };
+  
+  document.getElementById("passBtn").onclick = passCurrentWord;
+
+  let lastProcessedIndex = -1;
+  
+  recognition.onresult = (event) => {
+    const resultIndex = event.results.length - 1;
+    const transcript = event.results[resultIndex][0].transcript.toLowerCase().trim();
+    const isFinal = event.results[resultIndex].isFinal;
+    const target = words[index].toLowerCase();
+
+    // Skip if we've already processed this result
+    if (resultIndex <= lastProcessedIndex) {
+      return;
+    }
+
+    // Check for correct match in interim or final results
+    if (transcript === target) {
+      lastProcessedIndex = resultIndex;
+      messageDiv.textContent = "Great! ✨";
+      messageDiv.style.color = "#7a9d5a";
+      playSuccessSound();
+      index++;
+      setTimeout(() => {
+        showNextWord();
+        lastProcessedIndex = -1; // Reset for next word
+        // Ensure recognition is still running after showing next word
+        if (index < words.length && recognition.state !== 'listening') {
+          recognition.start();
+        }
+      }, 800);
+    } else if (isFinal) {
+      // Only show error message for final (confirmed) incorrect results
+      lastProcessedIndex = resultIndex;
+      messageDiv.textContent = `You said: "${transcript}". Try again.`;
+      messageDiv.style.color = "#c97d60";
+    }
+  };
+
+  recognition.onend = () => {
+    // Restart recognition if game is still active
+    if (index < words.length) {
+      recognition.start();
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'no-speech') {
+      // No speech detected, just restart
+      if (index < words.length) {
+        recognition.start();
+      }
+    } else {
+      messageDiv.textContent = "Error. Try again.";
+      console.error("Recognition error:", event.error);
+    }
+  };
+</script>
+
+</body>
+</html>
