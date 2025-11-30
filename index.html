@@ -168,6 +168,51 @@
       width: 100%;
     }
     
+    #practiceSection {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #d4c4b0;
+    }
+    
+    #practiceInput {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid #d4c4b0;
+      border-radius: 8px;
+      background: #faf8f5;
+      color: #5a4a3a;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    
+    #practiceInput:focus {
+      outline: none;
+      border-color: #c9a882;
+      box-shadow: 0 0 0 2px rgba(201, 168, 130, 0.2);
+    }
+    
+    #practiceBtn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px;
+      background: #e8ddd4;
+      color: #8b6f47;
+      border: 1px solid #d4c4b0;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    #practiceBtn:hover {
+      background: #ddd4c9;
+      transform: translateY(-1px);
+    }
+    
     #volumeLabel {
       font-size: 14px;
       margin-bottom: 8px;
@@ -266,6 +311,11 @@
     <div id="volumeBar">
       <div id="volumeLevel"></div>
     </div>
+  </div>
+  
+  <div id="practiceSection" style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #d4c4b0;">
+    <textarea id="practiceInput" placeholder="" style="width: 100%; min-height: 100px; padding: 12px; border: 1px solid #d4c4b0; border-radius: 8px; background: #faf8f5; color: #5a4a3a; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+    <button id="practiceBtn" style="margin-top: 12px; width: 100%;"></button>
   </div>
 </div>
 
@@ -393,18 +443,23 @@
       error: "Erreur. Réessayez.",
       micError: "Impossible d'accéder au microphone. Veuillez autoriser l'accès au microphone.",
       youSaid: "Vous avez dit :",
-      words: [] // Will be loaded from CSV
+      words: [], // Will be loaded from CSV
+      practicePlaceholder: "Entrez des mots séparés par des virgules ou des lignes...\nExemple: mot1, mot2, mot3\nOu:\nmot1\nmot2\nmot3",
+      practiceBtn: "Pratiquer ces mots",
+      practiceSuccess: "mots chargés. Cliquez sur \"Commencer\" pour commencer !",
+      practiceError: "Veuillez entrer des mots à pratiquer.",
+      practiceNoWords: "Aucun mot valide trouvé. Veuillez vérifier votre saisie."
     },
     zh: {
       code: "zh-CN",
-      title: "🎤 语音识别游戏",
+      title: "语音识别游戏",
       startBtn: "开始",
       passBtn: "跳过",
-      volumeLabel: "🎙️ 麦克风音量",
+      volumeLabel: "麦克风音量",
       sayPhrase: "请说这句话...",
-      great: "太好了！ ✨",
-      passed: "已跳过 ⏭️",
-      finished: "🎉 完成！",
+      great: "太好了",
+      passed: "已跳过",
+      finished: "完成！",
       greatJob: "做得很好！",
       noWords: "没有加载词语。",
       noWordsAvailable: "没有可用词语。",
@@ -412,12 +467,15 @@
       error: "错误。再试一次。",
       micError: "无法访问麦克风。请允许麦克风访问。",
       youSaid: "您说的是：",
+      practicePlaceholder: "输入单词，用逗号或换行分隔...\n示例: 单词1, 单词2, 单词3\n或:\n单词1\n单词2\n单词3",
+      practiceBtn: "练习这些",
+      practiceSuccess: "个单词已加载。点击\"开始\"开始！",
+      practiceError: "请输入要练习的单词。",
+      practiceNoWords: "未找到有效单词。请检查您的输入。",
       words: [
         "你好",
         "谢谢",
         "我要牛肉面",
-        "小新开灯",
-        "小新关灯",
         "不要",
         "晚上好",
         "晚安",
@@ -448,8 +506,6 @@
         "你好": "nǐ hǎo",
         "谢谢": "xiè xie",
         "我要牛肉面": "wǒ yào niú ròu miàn",
-        "小新开灯": "xiǎo xīn kāi dēng",
-        "小新关灯": "xiǎo xīn guān dēng",
         "不要": "bú yào",
         "晚上好": "wǎn shang hǎo",
         "晚安": "wǎn ān",
@@ -510,62 +566,83 @@
     }
   }
   
-  // Load words when page loads
-  loadWordsFromCSV();
-
   // ============================
   // SPEECH RECOGNITION SETUP
   // ============================
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
   
-  function setupRecognition() {
-    // Stop and remove old recognition if it exists
+  // End current recognition process
+  function endCurrentProcess() {
     if (recognition) {
       if (recognition.state === 'listening' || recognition.state === 'starting') {
         recognition.stop();
       }
-      // Remove old event handlers by creating new instance
+      recognition = null; // Clear the instance
     }
+    lastProcessedIndex = -1; // Reset tracking
+    // Clear any process-related messages
+    messageDiv.textContent = "";
+  }
+  
+  // Start a new word process with a fresh recognition instance
+  function startWordProcess() {
+    // End any existing process first
+    endCurrentProcess();
     
-    // Create new recognition instance with current language
+    // Capture the current word index for this process
+    const currentWordIndex = index;
+    const targetWord = words[currentWordIndex];
+    
+    // Create new recognition instance for this word
     recognition = new SpeechRecognition();
     recognition.lang = languageData[currentLang].code;
-    recognition.interimResults = true; // Enable interim results for faster feedback
+    recognition.interimResults = true;
     recognition.continuous = true;
     
-    // Set up event handlers
+    // Set up event handlers for this instance
     recognition.onresult = (event) => {
+      // Ignore results if this process is for a different word (process was ended)
+      if (index !== currentWordIndex || !recognition) {
+        return;
+      }
+      
       const resultIndex = event.results.length - 1;
       const transcript = normalizeText(event.results[resultIndex][0].transcript);
       const isFinal = event.results[resultIndex].isFinal;
-      const target = normalizeText(words[index]);
+      const target = normalizeText(targetWord);
+
+      const lang = languageData[currentLang];
+      messageDiv.textContent = lang.sayPhrase
+
 
       // Skip if we've already processed this result
       if (resultIndex <= lastProcessedIndex) {
         return;
       }
+      
+      // Ignore empty or very short transcripts (likely old/empty results)
+      if (!transcript || transcript.trim().length === 0) {
+        return;
+      }
 
       // Check for correct match in interim or final results
-      const lang = languageData[currentLang];
       if (transcript === target) {
         lastProcessedIndex = resultIndex;
+        
+        // Show success message (part of current process)
         messageDiv.textContent = lang.great;
         messageDiv.style.color = "#7a9d5a";
         playSuccessSound();
-        index++;
         
-        // Stop recognition to clear buffer, then show next word immediately
-        if (recognition.state === 'listening' || recognition.state === 'starting') {
-          recognition.stop();
-        }
-        
-        // Reset tracking and show next word
-        lastProcessedIndex = -1;
-        showNextWord();
-        
-        // Restart recognition immediately (buffer is now clear)
-        // onend handler will restart it when stop() completes
+        // Wait a moment to show the success message, then end process
+        setTimeout(() => {
+          index++;
+          // End current process (pass/succeed means end of process)
+          endCurrentProcess();
+          // Start new process for next word
+          showNextWord();
+        }, 800);
       } else if (isFinal) {
         // Only show error message for final (confirmed) incorrect results
         lastProcessedIndex = resultIndex;
@@ -576,29 +653,18 @@
     };
 
     recognition.onend = () => {
-      // Restart recognition if game is still active
-      // This ensures clean restart after stop() clears the buffer
-      if (index < words.length) {
-        recognition.start();
-      }
+      // Process ended - don't auto-restart, we'll start new process manually
     };
-
-    recognition.onerror = (event) => {
-      if (event.error === 'no-speech') {
-        // No speech detected, just restart
-        if (index < words.length) {
-          recognition.start();
-        }
-      } else {
-        const lang = languageData[currentLang];
-        messageDiv.textContent = lang.error;
-        console.error("Recognition error:", event.error);
-      }
-    };
+    
+    // Start the recognition for this word
+    recognition.start();
   }
   
-  // Initialize recognition
-  setupRecognition();
+  // Initialize recognition (for language switching)
+  function setupRecognition() {
+    endCurrentProcess();
+    // Don't start here - will start when word is shown
+  }
   
   // ============================
   // LANGUAGE SELECTION
@@ -625,6 +691,11 @@
     document.getElementById("passBtn").textContent = languageData[currentLang].passBtn;
     document.getElementById("volumeLabel").textContent = languageData[currentLang].volumeLabel;
     
+    // Update practice section UI
+    if (typeof updatePracticeUI === 'function') {
+      updatePracticeUI();
+    }
+    
     // Update active button
     document.querySelectorAll(".lang-btn").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.lang === lang);
@@ -637,12 +708,6 @@
     stopVolumeMonitoring();
   }
   
-  document.querySelectorAll(".lang-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      updateLanguage(btn.dataset.lang);
-    });
-  });
-
   // ============================
   // GAME LOGIC
   // ============================
@@ -652,13 +717,14 @@
       wordDiv.textContent = "—";
       messageDiv.textContent = lang.noWords;
       document.getElementById("passBtn").style.display = "none";
+      endCurrentProcess();
       return;
     }
     if (index >= words.length) {
       wordDiv.textContent = lang.finished;
       messageDiv.textContent = lang.greatJob;
       messageDiv.style.color = "#7a9d5a";
-      recognition.stop();
+      endCurrentProcess();
       stopVolumeMonitoring();
       document.getElementById("passBtn").style.display = "none";
       return;
@@ -670,9 +736,16 @@
     } else {
       wordDiv.textContent = words[index];
     }
+    
+    document.getElementById("passBtn").style.display = "inline-block";
+    
+    // Start new process for this word (new recognition instance)
+    // This will clear old messages and set up fresh recognition
+    startWordProcess();
+    
+    // Set initial message for new process (after process starts)
     messageDiv.textContent = lang.sayPhrase;
     messageDiv.style.color = "#8b6f47";
-    document.getElementById("passBtn").style.display = "inline-block";
   }
   
   function passCurrentWord() {
@@ -680,36 +753,20 @@
     if (index >= words.length) {
       return;
     }
+    
+    // Show pass message (part of current process)
     messageDiv.textContent = lang.passed;
     messageDiv.style.color = "#b8956a";
-    index++;
-    lastProcessedIndex = -1; // Reset for next word
     
-    // Stop recognition to clear buffer, then show next word immediately
-    if (recognition.state === 'listening' || recognition.state === 'starting') {
-      recognition.stop();
-    }
-    
-    // Show next word immediately
-    showNextWord();
-    
-    // Restart recognition immediately (buffer is now clear)
-    // onend handler will restart it when stop() completes
+    // Wait a moment to show the pass message, then end process
+    setTimeout(() => {
+      index++;
+      // End current process (pass means end of process)
+      endCurrentProcess();
+      // Start new process for next word
+      showNextWord();
+    }, 500);
   }
-
-  document.getElementById("startBtn").onclick = () => {
-    const lang = languageData[currentLang];
-    if (words.length === 0) {
-      messageDiv.textContent = lang.noWordsAvailable;
-      return;
-    }
-    index = 0;
-    showNextWord();
-    startVolumeMonitoring();
-    recognition.start();
-  };
-  
-  document.getElementById("passBtn").onclick = passCurrentWord;
 
   let lastProcessedIndex = -1;
   
@@ -729,6 +786,93 @@
     
     return normalized;
   }
+
+  // ============================
+  // MAIN FUNCTION
+  // ============================
+  function main() {
+    // Initialize recognition
+    setupRecognition();
+    
+    // Load words from CSV
+    loadWordsFromCSV();
+    
+    // Set up language selector buttons
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        updateLanguage(btn.dataset.lang);
+      });
+    });
+    
+    // Set up start button
+    document.getElementById("startBtn").onclick = () => {
+      const lang = languageData[currentLang];
+      if (words.length === 0) {
+        messageDiv.textContent = lang.noWordsAvailable;
+        return;
+      }
+      index = 0;
+      startVolumeMonitoring();
+      showNextWord(); // This will start the first word process
+    };
+    
+    // Set up pass button
+    document.getElementById("passBtn").onclick = passCurrentWord;
+    
+    // Set up practice button
+    window.updatePracticeUI = function() {
+      const lang = languageData[currentLang];
+      document.getElementById("practiceInput").placeholder = lang.practicePlaceholder || "Enter words separated by commas or new lines...";
+      document.getElementById("practiceBtn").textContent = lang.practiceBtn || "Practice These";
+    };
+    
+    // Initialize practice UI
+    updatePracticeUI();
+    
+    document.getElementById("practiceBtn").onclick = () => {
+      const input = document.getElementById("practiceInput").value.trim();
+      const lang = languageData[currentLang];
+      
+      if (!input) {
+        messageDiv.textContent = lang.practiceError || "Please enter some words to practice.";
+        messageDiv.style.color = "#c97d60";
+        return;
+      }
+      
+      // Parse input: handle both comma-separated and newline-separated (CSV-like)
+      const lines = input.split(/\r?\n/);
+      const parsedWords = [];
+      
+      for (const line of lines) {
+        // Split by comma and trim each word
+        const wordsInLine = line.split(',').map(w => w.trim()).filter(w => w.length > 0);
+        parsedWords.push(...wordsInLine);
+      }
+      
+      if (parsedWords.length === 0) {
+        messageDiv.textContent = lang.practiceNoWords || "No valid words found. Please check your input.";
+        messageDiv.style.color = "#c97d60";
+        return;
+      }
+      
+      // Update words for current language
+      languageData[currentLang].words = parsedWords;
+      words = parsedWords;
+      index = 0;
+      
+      // End current process if running
+      endCurrentProcess();
+      
+      // Update UI
+      messageDiv.textContent = `${parsedWords.length} ${lang.practiceSuccess || "words loaded. Click \"Start\" to begin!"}`;
+      messageDiv.style.color = "#7a9d5a";
+      wordDiv.textContent = "—";
+      document.getElementById("passBtn").style.display = "none";
+    };
+  }
+  
+  // Run main when DOM is ready
+  document.addEventListener('DOMContentLoaded', main);
 
 </script>
 
