@@ -541,11 +541,6 @@
       const isFinal = event.results[resultIndex].isFinal;
       const target = normalizeText(words[index]);
 
-      // Ignore results that are for a different word (old results from previous word)
-      if (index !== currentWordIndex) {
-        return;
-      }
-
       // Skip if we've already processed this result
       if (resultIndex <= lastProcessedIndex) {
         return;
@@ -559,15 +554,18 @@
         messageDiv.style.color = "#7a9d5a";
         playSuccessSound();
         index++;
-        currentWordIndex = index; // Update to match new word index
-        setTimeout(() => {
-          showNextWord();
-          lastProcessedIndex = -1; // Reset for next word
-          // Ensure recognition is still running after showing next word
-          if (index < words.length && recognition.state !== 'listening') {
-            recognition.start();
-          }
-        }, 800);
+        
+        // Stop recognition to clear buffer, then show next word immediately
+        if (recognition.state === 'listening' || recognition.state === 'starting') {
+          recognition.stop();
+        }
+        
+        // Reset tracking and show next word
+        lastProcessedIndex = -1;
+        showNextWord();
+        
+        // Restart recognition immediately (buffer is now clear)
+        // onend handler will restart it when stop() completes
       } else if (isFinal) {
         // Only show error message for final (confirmed) incorrect results
         lastProcessedIndex = resultIndex;
@@ -579,6 +577,7 @@
 
     recognition.onend = () => {
       // Restart recognition if game is still active
+      // This ensures clean restart after stop() clears the buffer
       if (index < words.length) {
         recognition.start();
       }
@@ -608,7 +607,6 @@
     currentLang = lang;
     words = languageData[currentLang].words;
     index = 0;
-    currentWordIndex = 0;
     lastProcessedIndex = -1;
     
     // Reload CSV words if switching to French
@@ -685,15 +683,18 @@
     messageDiv.textContent = lang.passed;
     messageDiv.style.color = "#b8956a";
     index++;
-    currentWordIndex = index; // Update to match new word index
     lastProcessedIndex = -1; // Reset for next word
-    setTimeout(() => {
-      showNextWord();
-      // Ensure recognition is still running after showing next word
-      if (index < words.length && recognition.state !== 'listening') {
-        recognition.start();
-      }
-    }, 500);
+    
+    // Stop recognition to clear buffer, then show next word immediately
+    if (recognition.state === 'listening' || recognition.state === 'starting') {
+      recognition.stop();
+    }
+    
+    // Show next word immediately
+    showNextWord();
+    
+    // Restart recognition immediately (buffer is now clear)
+    // onend handler will restart it when stop() completes
   }
 
   document.getElementById("startBtn").onclick = () => {
@@ -703,7 +704,6 @@
       return;
     }
     index = 0;
-    currentWordIndex = 0; // Reset word index tracking
     showNextWord();
     startVolumeMonitoring();
     recognition.start();
@@ -712,7 +712,6 @@
   document.getElementById("passBtn").onclick = passCurrentWord;
 
   let lastProcessedIndex = -1;
-  let currentWordIndex = 0; // Track which word we're currently checking
   
   // Normalize text for comparison (remove extra spaces, punctuation)
   function normalizeText(text) {
