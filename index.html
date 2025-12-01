@@ -132,7 +132,7 @@
     
     #word {
       font-size: clamp(24px, 5vw, 36px);
-      margin: 30px 0;
+      margin: 30px 0 15px 0;
       font-weight: 700;
       color: #5a4a3a;
       min-height: 100px;
@@ -149,6 +149,71 @@
       line-height: 1.4;
       word-wrap: break-word;
       text-align: center;
+    }
+    
+    .word-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    
+    .word-action-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      border: 1px solid #d4c4b0;
+      background: #e8ddd4;
+      color: #8b6f47;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+    
+    .word-action-btn:hover {
+      background: #ddd4c9;
+      transform: translateY(-1px);
+    }
+    
+    #flipBtn.meaning-btn {
+      width: 100%;
+      margin-top: 15px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: 1px solid #d4c4b0;
+      background: #e8ddd4;
+      color: #8b6f47;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      text-align: center;
+      white-space: normal;
+      word-wrap: break-word;
+      line-height: 1.5;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #flipBtn.meaning-btn:hover {
+      background: #ddd4c9;
+      transform: translateY(-1px);
+    }
+    
+    #wordInfo {
+      margin-top: 15px;
+      padding: 20px;
+      background: #faf8f5;
+      border: 1px solid #d4c4b0;
+      border-radius: 12px;
+      text-align: left;
+      color: #5a4a3a;
+      font-size: 16px;
+      line-height: 1.5;
+      width: 100%;
+      box-sizing: border-box;
     }
     
     #message {
@@ -213,13 +278,6 @@
       transform: translateY(-1px);
     }
     
-    #volumeLabel {
-      font-size: 14px;
-      margin-bottom: 8px;
-      color: #8b6f47;
-      font-weight: 500;
-    }
-    
     #volumeBar {
       width: 100%;
       height: 36px;
@@ -233,7 +291,7 @@
     
     #volumeLevel {
       height: 100%;
-      background: linear-gradient(to right, #4caf50, #8bc34a, #ffeb3b, #ff9800, #f44336);
+      background-color: #8b6f47;
       width: 0%;
       transition: width 0.1s ease-out;
       border-radius: 18px;
@@ -304,14 +362,21 @@
   </div>
 
   <div id="word">—</div>
+  
+  <div class="word-actions" style="display: none;">
+    <button class="word-action-btn" id="sayItBtn">Say It</button>
+  </div>
+  
   <div id="message"></div>
-
+  
   <div id="volumeContainer" style="display: none;">
-    <div id="volumeLabel">Volume du Microphone</div>
     <div id="volumeBar">
       <div id="volumeLevel"></div>
     </div>
   </div>
+  
+  <button id="flipBtn" class="meaning-btn" style="display: none;">See Meaning</button>
+  <div id="wordInfo" style="display: none;"></div>
   
   <div id="practiceSection" style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #d4c4b0;">
     <textarea id="practiceInput" placeholder="" style="width: 100%; min-height: 100px; padding: 12px; border: 1px solid #d4c4b0; border-radius: 8px; background: #faf8f5; color: #5a4a3a; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
@@ -327,6 +392,13 @@
   const messageDiv = document.getElementById("message");
   const volumeContainer = document.getElementById("volumeContainer");
   const volumeLevel = document.getElementById("volumeLevel");
+  const wordActions = document.querySelector(".word-actions");
+  const sayItBtn = document.getElementById("sayItBtn");
+  const flipBtn = document.getElementById("flipBtn");
+  const wordInfo = document.getElementById("wordInfo");
+  
+  // Word data structure: can be string or object with word, phonetic, meaning
+  // Example: "word" or {word: "word", phonetic: "[phonetic]", meaning: "meaning"}
   
   // ============================
   // AUDIO ANALYSIS SETUP
@@ -444,11 +516,18 @@
       micError: "Impossible d'accéder au microphone. Veuillez autoriser l'accès au microphone.",
       youSaid: "Vous avez dit :",
       words: [], // Will be loaded from CSV
-      practicePlaceholder: "Entrez des mots séparés par des virgules ou des lignes...\nExemple: mot1, mot2, mot3\nOu:\nmot1\nmot2\nmot3",
+      practicePlaceholder: "Entrez des mots séparés par des virgules ou des lignes...\nExemple: mot1, mot2, mot3\nOu:\nmot1\nmot2\nmot3\nOu format tableau: mot\t[phonétique]\texplication",
       practiceBtn: "Pratiquer ces mots",
       practiceSuccess: "mots chargés. Cliquez sur \"Commencer\" pour commencer !",
       practiceError: "Veuillez entrer des mots à pratiquer.",
-      practiceNoWords: "Aucun mot valide trouvé. Veuillez vérifier votre saisie."
+      practiceNoWords: "Aucun mot valide trouvé. Veuillez vérifier votre saisie.",
+      sayItBtn: "Dire",
+      flipBtnShow: "Voir le sens",
+      flipBtnHide: "Masquer le sens",
+      phoneticLabel: "Phonétique:",
+      meaningLabel: "Signification:",
+      speechError: "Erreur lors de la lecture du son. Veuillez réessayer.",
+      speechNotSupported: "La synthèse vocale n'est pas prise en charge dans votre navigateur."
     },
     zh: {
       code: "zh-CN",
@@ -467,11 +546,18 @@
       error: "错误。再试一次。",
       micError: "无法访问麦克风。请允许麦克风访问。",
       youSaid: "您说的是：",
-      practicePlaceholder: "输入单词，用逗号或换行分隔...\n示例: 单词1, 单词2, 单词3\n或:\n单词1\n单词2\n单词3",
+      practicePlaceholder: "输入单词，用逗号或换行分隔...\n示例: 单词1, 单词2, 单词3\n或:\n单词1\n单词2\n单词3\n或表格格式: 单词\t音标\t解释",
       practiceBtn: "练习这些",
       practiceSuccess: "个单词已加载。点击\"开始\"开始！",
       practiceError: "请输入要练习的单词。",
       practiceNoWords: "未找到有效单词。请检查您的输入。",
+      sayItBtn: "发音",
+      flipBtnShow: "查看意思",
+      flipBtnHide: "隐藏意思",
+      phoneticLabel: "音标:",
+      meaningLabel: "解释:",
+      speechError: "播放声音时出错。请重试。",
+      speechNotSupported: "您的浏览器不支持文本转语音。",
       words: [
         "你好",
         "谢谢",
@@ -542,26 +628,93 @@
   // ============================
   // LOAD WORDS FROM CSV
   // ============================
+  // Simple CSV parser that handles quoted fields
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    // Add last field
+    result.push(current.trim());
+    return result;
+  }
+  
   async function loadWordsFromCSV() {
     try {
-      const response = await fetch("word.csv");
+      const response = await fetch("words.csv");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const text = await response.text();
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
-      languageData.fr.words = lines;
+      
+      // Parse CSV: format is #,单词,音标,解释,笔记
+      const parsedWords = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip header row (starts with #)
+        if (i === 0 && line.startsWith('#')) {
+          continue;
+        }
+        
+        // Skip empty lines
+        if (!line) continue;
+        
+        const fields = parseCSVLine(line);
+        
+        // Expected format: index, word, phonetic, meaning, notes
+        // We use: 单词 (index 1), 音标 (index 2), 解释 (index 3)
+        if (fields.length >= 4) {
+          const word = fields[1] || '';
+          const phonetic = fields[2] || '';
+          const meaning = fields[3] || '';
+          
+          // Only add if we have a word
+          if (word) {
+            parsedWords.push({
+              word: word,
+              phonetic: phonetic || null,
+              meaning: meaning || null
+            });
+          }
+        }
+      }
+      
+      languageData.fr.words = parsedWords;
       
       // Update words if French is currently selected
       if (currentLang === "fr") {
         words = languageData.fr.words;
       }
       
-      console.log(`Loaded ${lines.length} French words from CSV`);
+      console.log(`Loaded ${parsedWords.length} French words from CSV`);
     } catch (error) {
       console.error("Error loading words from CSV:", error);
       if (messageDiv) {
-        messageDiv.textContent = "Erreur lors du chargement des mots. Vérifiez que word.csv est présent.";
+        messageDiv.textContent = "Erreur lors du chargement des mots. Vérifiez que words.csv est présent.";
       }
     }
   }
@@ -592,7 +745,8 @@
     
     // Capture the current word index for this process
     const currentWordIndex = index;
-    const targetWord = words[currentWordIndex];
+    const wordData = getCurrentWordData();
+    const targetWord = wordData.word;
     
     // Create new recognition instance for this word
     recognition = new SpeechRecognition();
@@ -689,8 +843,6 @@
     document.getElementById("title").textContent = languageData[currentLang].title;
     document.getElementById("startBtn").textContent = languageData[currentLang].startBtn;
     document.getElementById("passBtn").textContent = languageData[currentLang].passBtn;
-    document.getElementById("volumeLabel").textContent = languageData[currentLang].volumeLabel;
-    
     // Update practice section UI
     if (typeof updatePracticeUI === 'function') {
       updatePracticeUI();
@@ -711,12 +863,102 @@
   // ============================
   // GAME LOGIC
   // ============================
+  // Get current word data (handles both string and object format)
+  function getCurrentWordData() {
+    const wordData = words[index];
+    if (typeof wordData === 'string') {
+      return { word: wordData, phonetic: null, meaning: null };
+    } else if (typeof wordData === 'object' && wordData !== null) {
+      return {
+        word: wordData.word || wordData.单词 || wordData,
+        phonetic: wordData.phonetic || wordData.音标 || null,
+        meaning: wordData.meaning || wordData.解释 || null
+      };
+    }
+    return { word: String(wordData), phonetic: null, meaning: null };
+  }
+  
+  // Say the word using text-to-speech
+  function sayWord() {
+    const wordData = getCurrentWordData();
+    if (!wordData.word) return;
+    
+    if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(wordData.word);
+      utterance.lang = languageData[currentLang].code;
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      // Handle errors
+      utterance.onerror = (event) => {
+        console.error("Speech synthesis error:", event.error);
+        const lang = languageData[currentLang];
+        messageDiv.textContent = lang.speechError || "Error playing sound. Please try again.";
+        messageDiv.style.color = "#c97d60";
+      };
+      
+      // Optional: show feedback when speaking starts
+      utterance.onstart = () => {
+        sayItBtn.style.opacity = "0.6";
+      };
+      
+      utterance.onend = () => {
+        sayItBtn.style.opacity = "1.0";
+      };
+      
+      try {
+        speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.error("Error starting speech synthesis:", error);
+        const lang = languageData[currentLang];
+        messageDiv.textContent = lang.speechError || "Error playing sound. Please try again.";
+        messageDiv.style.color = "#c97d60";
+      }
+    } else {
+      // Browser doesn't support speech synthesis
+      const lang = languageData[currentLang];
+      messageDiv.textContent = lang.speechNotSupported || "Text-to-speech is not supported in your browser.";
+      messageDiv.style.color = "#c97d60";
+    }
+  }
+  
+  // Toggle word info (meaning only) - button shows meaning when clicked
+  let isShowingMeaning = false;
+  let originalButtonText = "";
+  
+  function toggleWordInfo() {
+    const lang = languageData[currentLang];
+    const wordData = getCurrentWordData();
+    
+    if (!isShowingMeaning) {
+      // Show meaning in button
+      if (wordData.meaning) {
+        // Clean HTML tags from meaning
+        const cleanMeaning = wordData.meaning.replace(/<[^>]*>/g, '').trim();
+        originalButtonText = flipBtn.textContent;
+        flipBtn.textContent = cleanMeaning;
+        isShowingMeaning = true;
+      }
+    } else {
+      // Hide meaning, show button text again
+      flipBtn.textContent = originalButtonText || (lang.flipBtnShow || "See Meaning");
+      isShowingMeaning = false;
+    }
+  }
+  
   function showNextWord() {
     const lang = languageData[currentLang];
     if (words.length === 0) {
       wordDiv.textContent = "—";
       messageDiv.textContent = lang.noWords;
       document.getElementById("passBtn").style.display = "none";
+      wordActions.style.display = "none";
+      flipBtn.style.display = "none";
+      wordInfo.style.display = "none";
       endCurrentProcess();
       return;
     }
@@ -727,14 +969,36 @@
       endCurrentProcess();
       stopVolumeMonitoring();
       document.getElementById("passBtn").style.display = "none";
+      wordActions.style.display = "none";
+      flipBtn.style.display = "none";
+      wordInfo.style.display = "none";
       return;
     }
+    
+    const wordData = getCurrentWordData();
+    
     // Display word with pinyin for Chinese
-    if (currentLang === 'zh' && languageData.zh.pinyin && languageData.zh.pinyin[words[index]]) {
-      const pinyin = languageData.zh.pinyin[words[index]];
-      wordDiv.innerHTML = `<div style="font-size: 1em; margin-bottom: 8px;">${words[index]}</div><div style="font-size: 0.5em; color: #8b6f47; font-weight: 400; letter-spacing: 0.5px;">${pinyin}</div>`;
+    if (currentLang === 'zh' && languageData.zh.pinyin && languageData.zh.pinyin[wordData.word]) {
+      const pinyin = languageData.zh.pinyin[wordData.word];
+      wordDiv.innerHTML = `<div style="font-size: 1em; margin-bottom: 8px;">${wordData.word}</div><div style="font-size: 0.5em; color: #8b6f47; font-weight: 400; letter-spacing: 0.5px;">${pinyin}</div>`;
     } else {
-      wordDiv.textContent = words[index];
+      wordDiv.textContent = wordData.word;
+    }
+    
+    // Reset meaning button state for new word
+    isShowingMeaning = false;
+    wordInfo.style.display = "none";
+    flipBtn.textContent = lang.flipBtnShow || "See Meaning";
+    sayItBtn.textContent = lang.sayItBtn || "Say It";
+    
+    // Show action buttons
+    wordActions.style.display = "flex";
+    
+    // Show meaning button only if word has a meaning
+    if (wordData.meaning && wordData.meaning.trim()) {
+      flipBtn.style.display = "block";
+    } else {
+      flipBtn.style.display = "none";
     }
     
     document.getElementById("passBtn").style.display = "inline-block";
@@ -819,6 +1083,10 @@
     // Set up pass button
     document.getElementById("passBtn").onclick = passCurrentWord;
     
+    // Set up word action buttons
+    sayItBtn.onclick = sayWord;
+    flipBtn.onclick = toggleWordInfo;
+    
     // Set up practice button
     window.updatePracticeUI = function() {
       const lang = languageData[currentLang];
@@ -839,14 +1107,34 @@
         return;
       }
       
-      // Parse input: handle both comma-separated and newline-separated (CSV-like)
+      // Parse input: handle tab-separated (word\tphonetic\tmeaning), comma-separated, and newline-separated
       const lines = input.split(/\r?\n/);
       const parsedWords = [];
       
       for (const line of lines) {
-        // Split by comma and trim each word
-        const wordsInLine = line.split(',').map(w => w.trim()).filter(w => w.length > 0);
-        parsedWords.push(...wordsInLine);
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
+        
+        // Check if it's tab-separated (word\tphonetic\tmeaning format)
+        if (trimmedLine.includes('\t')) {
+          const parts = trimmedLine.split('\t').map(p => p.trim());
+          if (parts.length >= 1 && parts[0]) {
+            const wordObj = {
+              word: parts[0],
+              phonetic: parts[1] || null,
+              meaning: parts[2] || null
+            };
+            // Also support Chinese column names
+            if (parts[0] === '单词' || parts[0] === '音标' || parts[0] === '解释') {
+              continue; // Skip header row
+            }
+            parsedWords.push(wordObj);
+          }
+        } else {
+          // Handle comma-separated or single words
+          const wordsInLine = trimmedLine.split(',').map(w => w.trim()).filter(w => w.length > 0);
+          parsedWords.push(...wordsInLine);
+        }
       }
       
       if (parsedWords.length === 0) {
