@@ -10,8 +10,15 @@
   const volumeLevel = document.getElementById("volumeLevel");
   const wordActions = document.querySelector(".word-actions");
   const sayItBtn = document.getElementById("sayItBtn");
+  const restartRecognitionBtn = document.getElementById("restartRecognitionBtn");
   const flipBtn = document.getElementById("flipBtn");
   const wordInfo = document.getElementById("wordInfo");
+  const progressContainer = document.getElementById("progressContainer");
+  const progressFill = document.getElementById("progressFill");
+  const progressText = document.getElementById("progressText");
+  const addTranslationContainer = document.getElementById("addTranslationContainer");
+  const addTranslationInput = document.getElementById("addTranslationInput");
+  const saveTranslationBtn = document.getElementById("saveTranslationBtn");
 
   // Initialize modules
   function initModules() {
@@ -43,8 +50,15 @@
       messageDiv,
       wordActions,
       sayItBtn,
+      restartRecognitionBtn,
       flipBtn,
       wordInfo,
+      progressContainer,
+      progressFill,
+      progressText,
+      addTranslationContainer,
+      addTranslationInput,
+      saveTranslationBtn,
       currentLang: "fr",
       startWordProcess: (targetWord) => SpeechRecognitionManager.startWordProcess(targetWord),
       endCurrentProcess: () => SpeechRecognitionManager.endCurrentProcess(),
@@ -273,7 +287,22 @@
     
     // Set up word action buttons
     sayItBtn.onclick = () => Game.sayWord();
+    if (restartRecognitionBtn) {
+      restartRecognitionBtn.onclick = () => Game.restartRecognition();
+    }
     flipBtn.onclick = () => Game.toggleWordInfo();
+    
+    // Set up translation input
+    if (saveTranslationBtn) {
+      saveTranslationBtn.onclick = () => Game.saveTranslation();
+    }
+    if (addTranslationInput) {
+      addTranslationInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          Game.saveTranslation();
+        }
+      });
+    }
     
     // Set up token save callback for API
     API.setSaveTokenCallback(saveToken);

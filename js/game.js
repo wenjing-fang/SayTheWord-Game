@@ -11,14 +11,21 @@ const Game = (function() {
   let messageDiv = null;
   let wordActions = null;
   let sayItBtn = null;
+  let restartRecognitionBtn = null;
   let flipBtn = null;
   let wordInfo = null;
-  let isShowingMeaning = false;
+  let isShowingMeaning = false; // Persistent state: true = meanings shown, false = meanings hidden
   let originalButtonText = "";
   let startWordProcess = null;
   let endCurrentProcess = null;
   let stopVolumeMonitoring = null;
   let startVolumeMonitoring = null;
+  let progressContainer = null;
+  let progressFill = null;
+  let progressText = null;
+  let addTranslationContainer = null;
+  let addTranslationInput = null;
+  let saveTranslationBtn = null;
 
   function init(config) {
     languageData = config.languageData;
@@ -26,14 +33,48 @@ const Game = (function() {
     messageDiv = config.messageDiv;
     wordActions = config.wordActions;
     sayItBtn = config.sayItBtn;
+    restartRecognitionBtn = config.restartRecognitionBtn;
     flipBtn = config.flipBtn;
     wordInfo = config.wordInfo;
     startWordProcess = config.startWordProcess;
     endCurrentProcess = config.endCurrentProcess;
     stopVolumeMonitoring = config.stopVolumeMonitoring;
     startVolumeMonitoring = config.startVolumeMonitoring;
+    progressContainer = config.progressContainer;
+    progressFill = config.progressFill;
+    progressText = config.progressText;
+    addTranslationContainer = config.addTranslationContainer;
+    addTranslationInput = config.addTranslationInput;
+    saveTranslationBtn = config.saveTranslationBtn;
     currentLang = config.currentLang || "fr";
     words = languageData[currentLang].words || [];
+  }
+
+  function updateProgress() {
+    if (!progressContainer || !progressFill || !progressText) return;
+    
+    if (words.length === 0) {
+      progressContainer.style.display = "none";
+      return;
+    }
+    
+    const total = words.length;
+    const current = index + 1; // Show 1-based position (word 1, 2, 3...)
+    const remaining = Math.max(0, total - current); // Words not yet started
+    const percentage = total > 0 ? ((index + 1) / total) * 100 : 0;
+    
+    // Cap percentage at 100%
+    const cappedPercentage = Math.min(100, percentage);
+    progressFill.style.width = `${cappedPercentage}%`;
+    
+    const lang = languageData[currentLang];
+    const progressTemplate = lang.progressText || "{current} / {total} words ({remaining} remaining)";
+    progressText.textContent = progressTemplate
+      .replace("{current}", current)
+      .replace("{total}", total)
+      .replace("{remaining}", remaining);
+    
+    progressContainer.style.display = "block";
   }
 
   // Get current word data (handles both string and object format)
@@ -100,23 +141,50 @@ const Game = (function() {
   }
   
   // Toggle word info (meaning only) - button shows meaning when clicked
+  // State persists across words
   function toggleWordInfo() {
     const lang = languageData[currentLang];
     const wordData = getCurrentWordData();
     
-    if (!isShowingMeaning) {
+    // Toggle the persistent state
+    isShowingMeaning = !isShowingMeaning;
+    
+    // Update display based on new state
+    if (isShowingMeaning) {
       // Show meaning in button
       if (wordData.meaning) {
         // Clean HTML tags from meaning
         const cleanMeaning = wordData.meaning.replace(/<[^>]*>/g, '').trim();
-        originalButtonText = flipBtn.textContent;
+        originalButtonText = lang.flipBtnShow || "See Meaning";
         flipBtn.textContent = cleanMeaning;
-        isShowingMeaning = true;
+      } else {
+        // No meaning available, revert state
+        isShowingMeaning = false;
       }
     } else {
       // Hide meaning, show button text again
       flipBtn.textContent = originalButtonText || (lang.flipBtnShow || "See Meaning");
-      isShowingMeaning = false;
+    }
+  }
+  
+  // Update meaning display based on current state (called when word changes)
+  function updateMeaningDisplay() {
+    const lang = languageData[currentLang];
+    const wordData = getCurrentWordData();
+    
+    if (!flipBtn) return;
+    
+    // Only update if button should be visible (word has meaning)
+    if (wordData.meaning && wordData.meaning.trim()) {
+      if (isShowingMeaning) {
+        // State is "open", show the meaning
+        const cleanMeaning = wordData.meaning.replace(/<[^>]*>/g, '').trim();
+        originalButtonText = lang.flipBtnShow || "See Meaning";
+        flipBtn.textContent = cleanMeaning;
+      } else {
+        // State is "closed", show button text
+        flipBtn.textContent = originalButtonText || (lang.flipBtnShow || "See Meaning");
+      }
     }
   }
   
@@ -129,6 +197,12 @@ const Game = (function() {
       wordActions.style.display = "none";
       flipBtn.style.display = "none";
       wordInfo.style.display = "none";
+      if (progressContainer) {
+        progressContainer.style.display = "none";
+      }
+      if (addTranslationContainer) {
+        addTranslationContainer.style.display = "none";
+      }
       if (endCurrentProcess) {
         endCurrentProcess();
       }
@@ -148,8 +222,14 @@ const Game = (function() {
       wordActions.style.display = "none";
       flipBtn.style.display = "none";
       wordInfo.style.display = "none";
+      if (addTranslationContainer) {
+        addTranslationContainer.style.display = "none";
+      }
+      updateProgress(); // Update to show completion
       return;
     }
+    
+    updateProgress(); // Update progress bar
     
     const wordData = getCurrentWordData();
     
@@ -161,11 +241,12 @@ const Game = (function() {
       wordDiv.textContent = wordData.word;
     }
     
-    // Reset meaning button state for new word
-    isShowingMeaning = false;
+    // Don't reset isShowingMeaning - keep persistent state
     wordInfo.style.display = "none";
-    flipBtn.textContent = lang.flipBtnShow || "See Meaning";
     sayItBtn.textContent = lang.sayItBtn || "Say It";
+    if (restartRecognitionBtn) {
+      restartRecognitionBtn.textContent = lang.restartRecognitionBtn || "Restart";
+    }
     
     // Show action buttons
     wordActions.style.display = "flex";
@@ -173,8 +254,24 @@ const Game = (function() {
     // Show meaning button only if word has a meaning
     if (wordData.meaning && wordData.meaning.trim()) {
       flipBtn.style.display = "block";
+      if (addTranslationContainer) {
+        addTranslationContainer.style.display = "none";
+      }
+      // Update meaning display based on persistent state
+      updateMeaningDisplay();
     } else {
       flipBtn.style.display = "none";
+      // Show translation input if word doesn't have a meaning
+      if (addTranslationContainer) {
+        addTranslationContainer.style.display = "block";
+        if (addTranslationInput) {
+          addTranslationInput.value = "";
+          addTranslationInput.placeholder = lang.addTranslationPlaceholder || "Add translation...";
+        }
+        if (saveTranslationBtn) {
+          saveTranslationBtn.textContent = lang.saveTranslationBtn || "Save";
+        }
+      }
     }
     
     document.getElementById("passBtn").style.display = "inline-block";
@@ -241,6 +338,7 @@ const Game = (function() {
   function setWords(newWords) {
     words = newWords;
     index = 0;
+    updateProgress();
   }
 
   function getWords() {
@@ -267,6 +365,60 @@ const Game = (function() {
     index++;
   }
 
+  function saveTranslation() {
+    if (!addTranslationInput) return;
+    
+    const translation = addTranslationInput.value.trim();
+    if (!translation) return;
+    
+    // Get current word and update it
+    const wordData = words[index];
+    if (typeof wordData === 'string') {
+      // Convert string to object
+      words[index] = { word: wordData, phonetic: null, meaning: translation };
+    } else if (typeof wordData === 'object' && wordData !== null) {
+      // Update existing object
+      words[index] = { ...wordData, meaning: translation };
+    }
+    
+    // Hide input and show meaning button
+    if (addTranslationContainer) {
+      addTranslationContainer.style.display = "none";
+    }
+    if (flipBtn) {
+      flipBtn.style.display = "block";
+    }
+    
+    // Update meaning display based on persistent state
+    updateMeaningDisplay();
+    
+    // Clear input
+    if (addTranslationInput) {
+      addTranslationInput.value = "";
+    }
+  }
+
+  function restartRecognition() {
+    const lang = languageData[currentLang];
+    const wordData = getCurrentWordData();
+    
+    if (!wordData.word) return;
+    
+    // End current process
+    if (endCurrentProcess) {
+      endCurrentProcess();
+    }
+    
+    // Start new process for current word
+    if (startWordProcess) {
+      startWordProcess(wordData.word);
+    }
+    
+    // Reset message
+    messageDiv.textContent = lang.sayPhrase;
+    messageDiv.style.color = "#4a7c59";
+  }
+
   return {
     init,
     getCurrentWordData,
@@ -282,7 +434,9 @@ const Game = (function() {
     setIndex,
     getCurrentLang,
     getCurrentWordIndex,
-    incrementIndex
+    incrementIndex,
+    saveTranslation,
+    restartRecognition
   };
 })();
 

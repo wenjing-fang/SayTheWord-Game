@@ -12,7 +12,7 @@
   <h1 id="title">Jeu de Reconnaissance Vocale</h1>
   
   <div class="language-selector">
-    <button class="lang-btn active" data-lang="fr">Français</button>
+    <button class="lang-btn active" data-lang="fr">FR</button>
     <button class="lang-btn" data-lang="zh">中文</button>
   </div>
   
@@ -21,10 +21,18 @@
     <button id="passBtn" style="display: none;">Passer</button>
   </div>
 
+  <div id="progressContainer" style="display: none;">
+    <div id="progressBar">
+      <div id="progressFill"></div>
+    </div>
+    <div id="progressText"></div>
+  </div>
+
   <div id="word">—</div>
   
   <div class="word-actions" style="display: none;">
     <button class="word-action-btn" id="sayItBtn">Dire</button>
+    <button class="word-action-btn" id="restartRecognitionBtn">Redémarrer</button>
   </div>
   
   <div id="message"></div>
@@ -37,24 +45,32 @@
   
   <button id="flipBtn" class="meaning-btn" style="display: none;">Voir le sens</button>
   <div id="wordInfo" style="display: none;"></div>
+  <div id="addTranslationContainer" style="display: none;">
+    <input type="text" id="addTranslationInput" placeholder="Ajouter une traduction...">
+    <button id="saveTranslationBtn" class="word-action-btn">Enregistrer</button>
+  </div>
   
   <div id="csvSection">
     <h3>Sélectionner une feuille de vocabulaire</h3>
-    <select id="csvFileSelect">
-      <option value="">Sélectionner une feuille de vocabulaire...</option>
-    </select>
-    <button id="loadCsvBtn">Charger le vocabulaire</button>
+    <div id="csvSelectContainer">
+      <select id="csvFileSelect">
+        <option value="">Sélectionner une feuille de vocabulaire...</option>
+      </select>
+      <button id="loadCsvBtn">Charger</button>
+    </div>
     <div id="csvMessage"></div>
   </div>
   
   <div id="apiSection">
     <h3>Vocabulaire de l'Assistant Français</h3>
-    <input type="text" id="apiToken" placeholder="Jeton API (NIS xxxx)">
+    <div id="apiTokenContainer">
+      <input type="text" id="apiToken" placeholder="Jeton API (NIS xxxx)">
+      <button id="fetchVocabListsBtn">Récupérer</button>
+    </div>
     <select id="vocabListSelect" style="display: none;">
       <option value="">Sélectionner une liste de vocabulaire...</option>
     </select>
     <button id="loadVocabBtn" style="display: none;">Charger le vocabulaire</button>
-    <button id="fetchVocabListsBtn">Récupérer les listes de vocabulaire</button>
     <div id="apiMessage"></div>
   </div>
   
