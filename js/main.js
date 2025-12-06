@@ -232,7 +232,13 @@
         // Check if we have a file reference from folder selection
         const fileRef = CSVLoader.getFileReference(selectedFile);
         // If no file reference, assume it's in the vocabulary folder
-        const fileToLoad = fileRef || `vocabulary/${selectedFile}`;
+        // Use path that works both locally and on GitHub Pages
+        if (!fileRef) {
+          const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+          var fileToLoad = `${basePath}vocabulary/${selectedFile}`;
+        } else {
+          var fileToLoad = fileRef;
+        }
         
         const words = await CSVLoader.loadWordsFromCSV(fileToLoad, AppConfig.languageData, "fr", messageDiv);
         
