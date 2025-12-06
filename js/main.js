@@ -234,8 +234,19 @@
         // If no file reference, assume it's in the vocabulary folder
         // Use path that works both locally and on GitHub Pages
         if (!fileRef) {
-          const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-          var fileToLoad = `${basePath}vocabulary/${selectedFile}`;
+          // Get base path using the same logic as CSVLoader
+          let pathname = window.location.pathname;
+          if (pathname.endsWith('.html') || pathname.endsWith('.htm')) {
+            pathname = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+          }
+          if (!pathname.endsWith('/')) {
+            pathname += '/';
+          }
+          if (pathname === '//') {
+            pathname = '/';
+          }
+          var fileToLoad = `${pathname}vocabulary/${selectedFile}`;
+          console.log('Loading CSV file from:', fileToLoad);
         } else {
           var fileToLoad = fileRef;
         }
