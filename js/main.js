@@ -87,6 +87,9 @@
       updatePracticeUI();
     }
     
+    // Update CSV section UI
+    updateCSVSectionUI();
+    
     // Update active button
     document.querySelectorAll(".lang-btn").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.lang === lang);
@@ -183,7 +186,7 @@
   }
   
   // Main initialization function
-  function main() {
+  async function main() {
     // Load saved API token
     loadSavedToken();
     
@@ -202,20 +205,13 @@
     // Initialize all modules
     initModules();
     
-    // Populate CSV file selector
+    // Automatically detect CSV files from vocabulary folder
     const csvFileSelect = document.getElementById("csvFileSelect");
-    if (csvFileSelect && AppConfig.csvFiles) {
-      AppConfig.csvFiles.forEach(csvFile => {
-        const option = document.createElement("option");
-        option.value = csvFile.filename;
-        option.textContent = csvFile.displayName;
-        csvFileSelect.appendChild(option);
-      });
-      
-      // Show load button if there are CSV files
-      if (AppConfig.csvFiles.length > 0) {
-        document.getElementById("loadCsvBtn").style.display = "block";
-      }
+    const csvMessage = document.getElementById("csvMessage");
+    if (csvFileSelect && csvMessage) {
+      csvMessage.textContent = "Détection des fichiers CSV...";
+      csvMessage.style.color = "#4a7c59";
+      await CSVLoader.detectVocabularyFiles(csvFileSelect, csvMessage);
     }
     
     // Set up CSV file loader
@@ -233,7 +229,12 @@
       csvMessage.style.color = "#4a7c59";
       
       try {
-        const words = await CSVLoader.loadWordsFromCSV(selectedFile, AppConfig.languageData, "fr", messageDiv);
+        // Check if we have a file reference from folder selection
+        const fileRef = CSVLoader.getFileReference(selectedFile);
+        // If no file reference, assume it's in the vocabulary folder
+        const fileToLoad = fileRef || `vocabulary/${selectedFile}`;
+        
+        const words = await CSVLoader.loadWordsFromCSV(fileToLoad, AppConfig.languageData, "fr", messageDiv);
         
         if (words && words.length > 0) {
           Game.setWords(words);
@@ -333,6 +334,29 @@
     
     // Set up practice button
     document.getElementById("practiceBtn").onclick = handlePracticeInput;
+    
+    // Update CSV section UI with translations
+    updateCSVSectionUI();
+  }
+  
+  // Update CSV section UI with current language
+  function updateCSVSectionUI() {
+    const lang = AppConfig.languageData[Game.getCurrentLang()];
+    const csvFileSelect = document.getElementById("csvFileSelect");
+    const loadCsvBtn = document.getElementById("loadCsvBtn");
+    const csvSectionTitle = document.querySelector("#csvSection h3");
+    
+    if (csvFileSelect && lang.csvSelectPlaceholder) {
+      if (csvFileSelect.options.length > 0) {
+        csvFileSelect.options[0].textContent = lang.csvSelectPlaceholder;
+      }
+    }
+    if (loadCsvBtn && lang.loadCsvBtn) {
+      loadCsvBtn.textContent = lang.loadCsvBtn;
+    }
+    if (csvSectionTitle && lang.csvSectionTitle) {
+      csvSectionTitle.textContent = lang.csvSectionTitle;
+    }
   }
   
   // Run main when DOM is ready

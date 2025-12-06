@@ -46,7 +46,11 @@ const AppConfig = {
       speechNotSupported: "La synthèse vocale n'est pas prise en charge dans votre navigateur.",
       progressText: "{current} / {total} mots ({remaining} restants)",
       addTranslationPlaceholder: "Ajouter une traduction...",
-      saveTranslationBtn: "Enregistrer"
+      saveTranslationBtn: "Enregistrer",
+      selectFolderBtn: "Sélectionner le dossier vocabulaire",
+      csvSectionTitle: "Sélectionner une feuille de vocabulaire",
+      csvSelectPlaceholder: "Sélectionner une feuille de vocabulaire...",
+      loadCsvBtn: "Charger"
     },
     zh: {
       code: "zh-CN",
@@ -81,6 +85,10 @@ const AppConfig = {
       progressText: "{current} / {total} 个单词（剩余 {remaining} 个）",
       addTranslationPlaceholder: "添加翻译...",
       saveTranslationBtn: "保存",
+      selectFolderBtn: "选择词汇文件夹",
+      csvSectionTitle: "选择词汇表",
+      csvSelectPlaceholder: "选择词汇表...",
+      loadCsvBtn: "加载",
       words: [
         "你好",
         "谢谢",
