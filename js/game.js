@@ -327,7 +327,7 @@ const Game = (function() {
     originalButtonText = "";
     
     // Reset game state
-    wordDiv.textContent = "—";
+    wordDiv.textContent = "";
     messageDiv.textContent = "";
     document.getElementById("passBtn").style.display = "none";
     if (stopVolumeMonitoring) {

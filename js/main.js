@@ -150,7 +150,7 @@
     // Update UI
     messageDiv.textContent = `${parsedWords.length} ${lang.practiceSuccess || "words loaded. Click \"Start\" to begin!"}`;
         messageDiv.style.color = "#4caf50";
-    wordDiv.textContent = "—";
+    wordDiv.textContent = "";
     document.getElementById("passBtn").style.display = "none";
   }
 
@@ -249,7 +249,7 @@
           // Update UI
           messageDiv.textContent = `Loaded ${words.length} words. Click "Start" to begin!`;
           messageDiv.style.color = "#4caf50";
-          wordDiv.textContent = "—";
+          wordDiv.textContent = "";
           document.getElementById("passBtn").style.display = "none";
           AudioManager.stopVolumeMonitoring();
           

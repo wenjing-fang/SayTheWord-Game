@@ -54,8 +54,8 @@ h1 {
 }
 
 .lang-btn {
-  padding: 1px 1px;
-  font-size: 9px;
+  padding: 4px 8px;
+  font-size: 11px;
   border: 1px solid #a8c5a0;
   background: #f1f8f4;
   color: #4a7c59;
@@ -436,10 +436,10 @@ button {
   }
   
   .lang-btn {
-    padding: 2px 5px;
-    font-size: 8px;
-    min-height: 0;
-    min-width: 0;
+    padding: 6px 10px;
+    font-size: 11px;
+    min-height: 4px;
+    min-width: 8px;
   }
   
   h1 {
@@ -458,7 +458,7 @@ button {
   }
   
   #word {
-    margin: 24px 0;
+    margin: 24px 2px;
     padding: 16px;
     min-height: 80px;
     font-size: clamp(20px, 4vw, 28px);
